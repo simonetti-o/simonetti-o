@@ -2,11 +2,11 @@
 
 ### 👨‍💻 Sobre Mim
 
-- 🎓 Estudante de **Análise e Desenvolvimento de Sistemas**.
+- 🎓 Estou cursando o 2º semestre de **Análise e Desenvolvimento de Sistemas**.
 - 💡 Apaixonado por tecnologia e focado em evolução constante.
 - 🚀 Meu objetivo é me tornar um desenvolvedor de alta performance.
 
-### 🛠 Tecnologias que utilizo
+### 💻 Tecnologias que utilizo
 <div align="left">
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/csharp/csharp-original.svg" height="40" alt="csharp logo"  />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/dotnetcore/dotnetcore-original.svg" height="40" alt="dotnetcore logo" />
@@ -20,10 +20,8 @@
   <a href="https://www.linkedin.com/in/isaacsimonetti" target="_blank">
     <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="Linkedin Badge" />
   </a>
-  <a href="https://www.instagram.com/_isaacls/" target="_blank">
-    <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Instagram Badge" />
-  </a>
   <a href="mailto:isaac.limasimonetti@gmail.com" target="_blank">
     <img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail Badge" />
   </a>
-</div>
+  <a href="https://www.instagram.com/_isaacls/" target="_blank">
+    <img src="
