@@ -3,8 +3,8 @@
 ### 👨‍💻 Sobre Mim
 
 - 🎓 Estudante de **Análise e Desenvolvimento de Sistemas**.
-- 💡 Minha meta diária é transformar curiosidade em solução e desafios em aprendizado.
-- 🚀 Em busca de evolução constante na área de tecnologia.
+- 💡 Apaixonado por tecnologia e focado em evolução constante.
+- 🚀 Meu objetivo é me tornar um desenvolvedor de alta performance.
 
 ### 🛠 Tecnologias que utilizo
 <div align="left">
