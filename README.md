@@ -2,7 +2,7 @@
 
 ### 👨‍💻 Sobre Mim
 
-- 🎓 Estou cursando o 2º semestre de **Systems Analysis and Development**.
+- 🎓 Estou cursando o 2º semestre de **Análise e Desenvolvimento de Sistemas**.
 - 💡 Apaixonado por tecnologia e focado em evolução constante.
 - 🚀 Meu objetivo é me tornar um desenvolvedor de alta performance.
 
