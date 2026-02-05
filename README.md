@@ -2,7 +2,7 @@
 
 ### 👨‍💻 Sobre Mim
 
-- 🎓 Estou cursando o 2º semestre de **Análise e Desenvolvimento de Sistemas**.
+- 🎓 Estou cursando o 2º semestre de **Systems Analysis and Development**.
 - 💡 Apaixonado por tecnologia e focado em evolução constante.
 - 🚀 Meu objetivo é me tornar um desenvolvedor de alta performance.
 
@@ -24,4 +24,6 @@
     <img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail Badge" />
   </a>
   <a href="https://www.instagram.com/_isaacls/" target="_blank">
-    <img src="
+    <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Instagram Badge" />
+  </a>
+</div>
