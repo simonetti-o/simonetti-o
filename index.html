@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Flappy Bird</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #4ec0ca;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    canvas {
+      display: block;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ── Constants ───────────────────────────────────────────────────────────────
+const LW = 320, LH = 568;           // logical canvas size
+const GRAVITY       = 1400;
+const FLAP_VEL      = -420;
+const MAX_FALL      = 700;
+const PIPE_W        = 52;
+const PIPE_GAP      = 145;
+const PIPE_SPEED    = 140;
+const PIPE_INTERVAL = 1.6;
+const GROUND_H      = 60;
+const BIRD_R        = 20;           // collision radius (px logical)
+const BIRD_DISPLAY  = 36;           // draw radius (visual circle size)
+
+// ── Canvas setup ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+let dpr = 1, scaleX = 1, scaleY = 1;
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  const ratio = LH / LW;
+  let cssW = window.innerWidth;
+  let cssH = window.innerHeight;
+  if (cssH / cssW > ratio) { cssH = Math.floor(cssW * ratio); }
+  else                     { cssW = Math.floor(cssH / ratio); }
+  canvas.style.width  = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  canvas.width  = cssW * dpr;
+  canvas.height = cssH * dpr;
+  scaleX = canvas.width  / LW;
+  scaleY = canvas.height / LH;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ── Friend photo sprite ───────────────────────────────────────────────────────
+const friendImg = new Image();
+friendImg.src = 'data:image/jpeg;base64,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';
+
+// ── Game state ────────────────────────────────────────────────────────────────
+let state = 'waiting'; // 'waiting' | 'playing' | 'dead'
+let score = 0;
+let best  = parseInt(localStorage.getItem('flappy_best') || '0');
+let deathTime = 0;
+let idleT = 0;
+
+const bird = { x: 80, y: LH / 2, vy: 0, angle: 0 };
+let pipes = [];
+let pipeTimer = 0;
+
+// ── Input ─────────────────────────────────────────────────────────────────────
+function flap() {
+  if (state === 'waiting') {
+    state = 'playing';
+    bird.vy = FLAP_VEL;
+  } else if (state === 'playing') {
+    bird.vy = FLAP_VEL;
+  } else if (state === 'dead' && Date.now() - deathTime > 500) {
+    resetGame();
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); flap(); }
+});
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault(); flap();
+}, { passive: false });
+canvas.addEventListener('mousedown', () => flap());
+
+// ── Collision helper ──────────────────────────────────────────────────────────
+function circleRect(cx, cy, cr, rx, ry, rw, rh) {
+  const nx = Math.max(rx, Math.min(cx, rx + rw));
+  const ny = Math.max(ry, Math.min(cy, ry + rh));
+  const dx = cx - nx, dy = cy - ny;
+  return dx * dx + dy * dy < cr * cr;
+}
+
+// ── Game logic ────────────────────────────────────────────────────────────────
+function spawnPipe() {
+  const minTop = 60, maxTop = LH - GROUND_H - PIPE_GAP - 60;
+  const gapTop = minTop + Math.random() * (maxTop - minTop);
+  pipes.push({ x: LW + PIPE_W, gapTop, gapBottom: gapTop + PIPE_GAP, scored: false });
+}
+
+function resetGame() {
+  bird.y  = LH / 2;
+  bird.vy = 0;
+  bird.angle = 0;
+  pipes = [];
+  pipeTimer = 0;
+  score = 0;
+  idleT = 0;
+  state = 'waiting';
+}
+
+function update(dt) {
+  if (state === 'waiting') {
+    idleT += dt;
+    bird.y = LH / 2 + Math.sin(idleT * 2.5) * 8;
+    return;
+  }
+  if (state === 'dead') return;
+
+  // Physics
+  bird.vy = Math.min(bird.vy + GRAVITY * dt, MAX_FALL);
+  bird.y += bird.vy * dt;
+  bird.angle = Math.max(-0.45, Math.min(Math.PI / 2, bird.vy / 900));
+
+  // Pipes
+  pipeTimer += dt;
+  if (pipeTimer >= PIPE_INTERVAL) { spawnPipe(); pipeTimer = 0; }
+  for (const p of pipes) {
+    p.x -= PIPE_SPEED * dt;
+    if (!p.scored && p.x + PIPE_W < bird.x) {
+      p.scored = true;
+      score++;
+      if (score > best) { best = score; localStorage.setItem('flappy_best', best); }
+    }
+  }
+  pipes = pipes.filter(p => p.x + PIPE_W > 0);
+
+  // Collisions
+  if (bird.y + BIRD_R >= LH - GROUND_H || bird.y - BIRD_R <= 0) {
+    die();
+    return;
+  }
+  for (const p of pipes) {
+    if (circleRect(bird.x, bird.y, BIRD_R, p.x, 0, PIPE_W, p.gapTop) ||
+        circleRect(bird.x, bird.y, BIRD_R, p.x, p.gapBottom, PIPE_W, LH - GROUND_H - p.gapBottom)) {
+      die();
+      return;
+    }
+  }
+}
+
+function die() {
+  state = 'dead';
+  deathTime = Date.now();
+}
+
+// ── Drawing ───────────────────────────────────────────────────────────────────
+function drawBg() {
+  const grad = ctx.createLinearGradient(0, 0, 0, LH - GROUND_H);
+  grad.addColorStop(0,   '#4ec0ca');
+  grad.addColorStop(1,   '#78d6e0');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, LW, LH - GROUND_H);
+
+  // Ground
+  ctx.fillStyle = '#ded895';
+  ctx.fillRect(0, LH - GROUND_H, LW, GROUND_H);
+  ctx.fillStyle = '#5d8a3c';
+  ctx.fillRect(0, LH - GROUND_H, LW, 8);
+}
+
+function drawPipes() {
+  for (const p of pipes) {
+    const capH = 22, capExtra = 6;
+
+    // Top pipe
+    ctx.fillStyle = '#4caf50';
+    ctx.fillRect(p.x, 0, PIPE_W, p.gapTop - capH);
+    ctx.fillStyle = '#388e3c';
+    ctx.fillRect(p.x - capExtra / 2, p.gapTop - capH, PIPE_W + capExtra, capH);
+
+    // Bottom pipe
+    ctx.fillStyle = '#4caf50';
+    ctx.fillRect(p.x, p.gapBottom + capH, PIPE_W, LH - GROUND_H - p.gapBottom - capH);
+    ctx.fillStyle = '#388e3c';
+    ctx.fillRect(p.x - capExtra / 2, p.gapBottom, PIPE_W + capExtra, capH);
+  }
+}
+
+function drawBird() {
+  ctx.save();
+  ctx.translate(bird.x, bird.y);
+  ctx.rotate(bird.angle);
+
+  const r = BIRD_DISPLAY;
+
+  if (friendImg.complete && friendImg.naturalWidth > 0) {
+    // Clip to circle and draw friend photo
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(friendImg, -r, -r, r * 2, r * 2);
+
+    // White border
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    // Fallback: yellow circle while image loads
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#f5e642';
+    ctx.fill();
+    ctx.strokeStyle = '#e0b800';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawScore() {
+  ctx.save();
+  ctx.font = 'bold 40px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'white';
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 3;
+  const txt = String(score);
+  ctx.strokeText(txt, LW / 2, 60);
+  ctx.fillText(txt,   LW / 2, 60);
+  ctx.restore();
+}
+
+function drawOverlay(title, sub1, sub2) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0, 0, LW, LH);
+
+  ctx.textAlign = 'center';
+
+  ctx.font = 'bold 36px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 3;
+  ctx.strokeText(title, LW / 2, LH / 2 - 40);
+  ctx.fillText(title,   LW / 2, LH / 2 - 40);
+
+  ctx.font = '22px sans-serif';
+  ctx.fillStyle = '#ffe';
+  ctx.fillText(sub1, LW / 2, LH / 2 + 10);
+  ctx.fillText(sub2, LW / 2, LH / 2 + 42);
+  ctx.restore();
+}
+
+function draw() {
+  ctx.save();
+  ctx.scale(scaleX, scaleY);
+
+  drawBg();
+  drawPipes();
+  drawBird();
+  drawScore();
+
+  if (state === 'waiting') {
+    drawOverlay('Flappy Bird', 'Toque para começar', '');
+  } else if (state === 'dead') {
+    drawOverlay(
+      'Fim de jogo!',
+      'Pontos: ' + score + '  |  Recorde: ' + best,
+      'Toque para jogar de novo'
+    );
+  }
+
+  ctx.restore();
+}
+
+// ── Loop ──────────────────────────────────────────────────────────────────────
+let lastTime = 0;
+function loop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resetGame();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
