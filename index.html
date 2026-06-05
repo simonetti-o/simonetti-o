@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Flappy Bird</title>
+  <title>Noia Bird</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -234,6 +234,47 @@ function drawScore() {
   ctx.restore();
 }
 
+function drawIntro() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, 0, LW, LH);
+
+  ctx.textAlign = 'center';
+  const cx = LW / 2;
+
+  // Shadow glow
+  ctx.shadowColor = '#f7b731';
+  ctx.shadowBlur = 18;
+
+  // "NOIA" — big yellow
+  ctx.font = 'bold 72px sans-serif';
+  ctx.fillStyle = '#ffe033';
+  ctx.strokeStyle = '#b8860b';
+  ctx.lineWidth = 4;
+  ctx.strokeText('NOIA', cx, LH / 2 - 60);
+  ctx.fillText('NOIA',   cx, LH / 2 - 60);
+
+  // "BIRD" — white, slightly smaller
+  ctx.shadowColor = '#fff';
+  ctx.shadowBlur = 10;
+  ctx.font = 'bold 54px sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 3;
+  ctx.strokeText('BIRD', cx, LH / 2);
+  ctx.fillText('BIRD',   cx, LH / 2);
+
+  ctx.shadowBlur = 0;
+
+  // Tap hint — pulsing opacity using idleT
+  const alpha = 0.55 + 0.45 * Math.sin(idleT * 3);
+  ctx.font = '20px sans-serif';
+  ctx.fillStyle = `rgba(255,255,220,${alpha})`;
+  ctx.fillText('Toque para começar', cx, LH / 2 + 52);
+
+  ctx.restore();
+}
+
 function drawOverlay(title, sub1, sub2) {
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
@@ -265,7 +306,7 @@ function draw() {
   drawScore();
 
   if (state === 'waiting') {
-    drawOverlay('Flappy Bird', 'Toque para começar', '');
+    drawIntro();
   } else if (state === 'dead') {
     drawOverlay(
       'Fim de jogo!',
