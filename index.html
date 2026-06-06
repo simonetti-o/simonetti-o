@@ -172,7 +172,8 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   const name = document.getElementById('nameInput').value.trim();
   if (!name) { document.getElementById('nameInput').focus(); return; }
   hideNameModal();
-  saveScore(name, score).finally(() => showLeaderboard());
+  saveScore(name, score);
+  showLeaderboard();
 });
 document.getElementById('skipBtn').addEventListener('click', () => {
   hideNameModal();
