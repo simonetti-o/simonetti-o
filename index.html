@@ -122,8 +122,10 @@ function loadLeaderboard() {
 
 // ── Modal helpers ─────────────────────────────────────────────────────────────
 let modalOpen = false;
+let pendingScore = 0;  // score captured at death time
 
 function showNameModal(pts) {
+  pendingScore = pts;
   modalOpen = true;
   document.getElementById('scoreMsg').textContent = 'Você fez ' + pts + ' ponto' + (pts !== 1 ? 's' : '') + '!';
   document.getElementById('nameInput').value = '';
@@ -172,8 +174,8 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   const name = document.getElementById('nameInput').value.trim();
   if (!name) { document.getElementById('nameInput').focus(); return; }
   hideNameModal();
-  saveScore(name, score);
-  showLeaderboard();
+  saveScore(name, pendingScore);
+  setTimeout(() => showLeaderboard(), 600);
 });
 document.getElementById('skipBtn').addEventListener('click', () => {
   hideNameModal();
