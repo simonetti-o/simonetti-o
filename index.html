@@ -6,23 +6,21 @@
   <title>Noia Bird</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100%; height: 100%;
-      overflow: hidden;
-      background: #4ec0ca;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      overflow: hidden; background: #4ec0ca;
+      display: flex; justify-content: center; align-items: center;
     }
     canvas { display: block; touch-action: none; }
 
+    /* ── modais ── */
     .modal {
-      display: none; position: fixed;
-      inset: 0; background: rgba(0,0,0,0.72);
-      z-index: 20; flex-direction: column;
-      align-items: center; justify-content: center;
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.72); z-index: 20;
+      flex-direction: column; align-items: center; justify-content: center;
     }
     .modal.show { display: flex; }
     .mbox {
@@ -30,30 +28,44 @@
       border-radius: 18px; padding: 26px 22px;
       width: min(290px, 88vw); text-align: center; color: #fff;
     }
-    .mbox h2 { font-size: 22px; margin-bottom: 6px; color: #e62020; }
-    .mbox p  { font-size: 15px; margin-bottom: 14px; color: #ccc; }
-    .mbox input {
-      width: 100%; padding: 10px 12px; border-radius: 10px;
-      border: 1.5px solid #555; background: #111; color: #fff;
-      font-size: 16px; margin-bottom: 12px; outline: none;
-    }
-    .mbox input:focus { border-color: #e62020; }
+    .mbox h2 { font-size: 22px; margin-bottom: 10px; color: #e62020; }
     .btn {
-      display: inline-block; padding: 10px 0; width: 100%;
-      border-radius: 10px; border: none; font-size: 16px;
+      display: block; padding: 11px 0; width: 100%;
+      border-radius: 10px; border: none; font-size: 15px;
       font-weight: bold; cursor: pointer; margin-bottom: 8px;
     }
-    .btn-red   { background: #e62020; color: #fff; }
-    .btn-gray  { background: #333; color: #aaa; }
-    .lb-list { text-align: left; margin: 10px 0 16px; }
-    .lb-row {
-      display: flex; justify-content: space-between;
-      padding: 5px 0; border-bottom: 1px solid #333;
-      font-size: 14px;
+    .btn:last-child { margin-bottom: 0; }
+    .btn-red  { background: #e62020; color: #fff; }
+    .btn-gray { background: #333;    color: #aaa; }
+    .btn-google {
+      background: #fff; color: #333;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
     }
-    .lb-row .pos  { color: #e62020; font-weight: bold; width: 24px; }
-    .lb-row .nm   { flex: 1; color: #fff; }
-    .lb-row .pts  { color: #ffe033; font-weight: bold; }
+    .lb-list { text-align: left; margin: 6px 0 14px; }
+    .lb-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 0; border-bottom: 1px solid #333; font-size: 14px;
+    }
+    .lb-row .pos { color: #e62020; font-weight: bold; width: 26px; }
+    .lb-row .nm  { flex: 1; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lb-row .pts { color: #ffe033; font-weight: bold; margin-left: 6px; }
+    .lb-row.me   { background: rgba(230,32,32,0.15); border-radius: 6px; }
+
+    /* ── barra de usuário (topo) ── */
+    #userBar {
+      position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+      z-index: 15; display: flex; align-items: center; gap: 8px;
+      background: rgba(0,0,0,0.55); border-radius: 0 0 14px 14px;
+      padding: 6px 14px; max-width: min(320px, 100vw);
+    }
+    #userBar img { width: 28px; height: 28px; border-radius: 50%; }
+    #userBar span { color: #fff; font-size: 13px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #userBar button {
+      background: none; border: 1px solid #aaa; color: #aaa;
+      border-radius: 8px; padding: 3px 8px; font-size: 11px; cursor: pointer;
+    }
+
+    /* ── botão ranking ── */
     #rankBtn {
       position: fixed; z-index: 10;
       background: rgba(0,0,0,0.55); color: #ffe033;
@@ -67,30 +79,42 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<button id="rankBtn">🏆 Ver Ranking</button>
 
-<!-- Modal: name input -->
-<div id="nameModal" class="modal">
-  <div class="mbox">
-    <h2>Fim de jogo!</h2>
-    <p id="scoreMsg"></p>
-    <input id="nameInput" type="text" maxlength="15" placeholder="Seu nome ou apelido">
-    <button class="btn btn-red" id="saveBtn">Salvar pontuação</button>
-    <button class="btn btn-gray" id="skipBtn">Pular</button>
-  </div>
+<!-- Barra usuário (topo) -->
+<div id="userBar" style="display:none">
+  <img id="userPhoto" src="" alt="">
+  <span id="userName"></span>
+  <button id="logoutBtn">Sair</button>
 </div>
+
+<button id="rankBtn">🏆 Ranking</button>
 
 <!-- Modal: leaderboard -->
 <div id="lbModal" class="modal">
   <div class="mbox">
     <h2>🏆 Ranking</h2>
     <div class="lb-list" id="lbList"></div>
-    <button class="btn btn-red" id="playAgainBtn">Jogar de novo</button>
+    <button class="btn btn-red"  id="playAgainBtn">Jogar de novo</button>
+    <button class="btn btn-gray" id="lbCloseBtn">Fechar</button>
+  </div>
+</div>
+
+<!-- Modal: login -->
+<div id="loginModal" class="modal">
+  <div class="mbox">
+    <h2 style="color:#fff">Entre para jogar</h2>
+    <p style="color:#aaa;font-size:14px;margin-bottom:16px">
+      Login com Google para salvar sua pontuação no ranking online
+    </p>
+    <button class="btn btn-google" id="googleLoginBtn">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.5 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.1 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.6 28.6A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.7 2.2-7.7 2.2-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
+      Entrar com Google
+    </button>
+    <button class="btn btn-gray" id="loginSkipBtn">Jogar sem salvar</button>
   </div>
 </div>
 <script>
-// ── Firebase config ──────────────────────────────────────────────────────────
-// ATENÇÃO: preencher com os dados do seu projeto Firebase
+// ── Firebase + Auth ────────────────────────────────────────────────────────────
 const FB_CONFIG = {
   apiKey:            "AIzaSyAt0-VeTamWequky-WKTQDoDJACXpQ09zs",
   authDomain:        "noia-bird-ranking.firebaseapp.com",
@@ -100,42 +124,54 @@ const FB_CONFIG = {
   messagingSenderId: "765550947614",
   appId:             "1:765550947614:web:150c11ae335f99ba316d0f",
 };
-let db = null;
-try {
-  firebase.initializeApp(FB_CONFIG);
-  db = firebase.database();
-} catch(e) { console.warn('Firebase não configurado:', e.message); }
+firebase.initializeApp(FB_CONFIG);
+const db             = firebase.database();
+const auth           = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-function saveScore(name, pts) {
-  if (!db) return Promise.resolve();
-  return db.ref('scores').push({ name: name.trim().slice(0, 15), score: pts, ts: Date.now() });
-}
+let currentUser = null;
 
-function loadLeaderboard() {
-  if (!db) return Promise.resolve([]);
-  return db.ref('scores').orderByChild('score').limitToLast(10).once('value').then(snap => {
-    const rows = [];
-    snap.forEach(c => rows.push(c.val()));
-    return rows.sort((a, b) => b.score - a.score);
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  const bar = document.getElementById('userBar');
+  if (user) {
+    document.getElementById('userPhoto').src = user.photoURL || '';
+    document.getElementById('userName').textContent = user.displayName || user.email;
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+});
+
+auth.getRedirectResult().catch(err => console.warn('redirect:', err.message));
+
+// ── Score helpers ──────────────────────────────────────────────────────────────
+function saveScore(pts) {
+  if (!currentUser || pts <= 0) return;
+  const ref = db.ref('scores/' + currentUser.uid);
+  ref.once('value').then(snap => {
+    const prev = snap.val();
+    if (!prev || pts > (prev.best || 0)) {
+      ref.set({
+        name:      currentUser.displayName || currentUser.email || 'Anônimo',
+        best:      pts,
+        photo:     currentUser.photoURL || '',
+        updatedAt: Date.now(),
+      });
+    }
   });
 }
 
-// ── Modal helpers ─────────────────────────────────────────────────────────────
+function loadLeaderboard() {
+  return db.ref('scores').orderByChild('best').limitToLast(10).once('value').then(snap => {
+    const rows = [];
+    snap.forEach(c => rows.push({ uid: c.key, ...c.val() }));
+    return rows.sort((a, b) => b.best - a.best);
+  });
+}
+
+// ── Modal helpers ──────────────────────────────────────────────────────────────
 let modalOpen = false;
-let pendingScore = 0;  // score captured at death time
-
-function showNameModal(pts) {
-  pendingScore = pts;
-  modalOpen = true;
-  document.getElementById('scoreMsg').textContent = 'Você fez ' + pts + ' ponto' + (pts !== 1 ? 's' : '') + '!';
-  document.getElementById('nameInput').value = '';
-  document.getElementById('nameModal').classList.add('show');
-  setTimeout(() => document.getElementById('nameInput').focus(), 100);
-}
-
-function hideNameModal() {
-  document.getElementById('nameModal').classList.remove('show');
-}
 
 function showLeaderboard() {
   modalOpen = true;
@@ -147,11 +183,12 @@ function showLeaderboard() {
       list.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px">Nenhuma pontuação ainda!</div>';
       return;
     }
+    const uid = currentUser ? currentUser.uid : null;
     list.innerHTML = rows.map((r, i) =>
-      `<div class="lb-row">
+      `<div class="lb-row${r.uid === uid ? ' me' : ''}">
         <span class="pos">${i + 1}º</span>
-        <span class="nm">${escHtml(r.name)}</span>
-        <span class="pts">${r.score}</span>
+        <span class="nm">${escHtml(r.name || 'Anônimo')}</span>
+        <span class="pts">${r.best}</span>
       </div>`
     ).join('');
   }).catch(() => {
@@ -165,27 +202,36 @@ function hideLeaderboard() {
   resetGame();
 }
 
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function showLoginModal() {
+  modalOpen = true;
+  document.getElementById('loginModal').classList.add('show');
 }
 
-// Button wiring
-document.getElementById('saveBtn').addEventListener('click', () => {
-  const name = document.getElementById('nameInput').value.trim();
-  if (!name) { document.getElementById('nameInput').focus(); return; }
-  hideNameModal();
-  saveScore(name, pendingScore);
-  setTimeout(() => showLeaderboard(), 600);
+function hideLoginModal() {
+  document.getElementById('loginModal').classList.remove('show');
+  modalOpen = false;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Button wiring ──────────────────────────────────────────────────────────────
+document.getElementById('googleLoginBtn').addEventListener('click', () => {
+  hideLoginModal();
+  auth.signInWithRedirect(googleProvider);
 });
-document.getElementById('skipBtn').addEventListener('click', () => {
-  hideNameModal();
+document.getElementById('loginSkipBtn').addEventListener('click', () => {
+  hideLoginModal();
   showLeaderboard();
 });
 document.getElementById('playAgainBtn').addEventListener('click', hideLeaderboard);
+document.getElementById('lbCloseBtn').addEventListener('click', hideLeaderboard);
 document.getElementById('rankBtn').addEventListener('click', () => {
   modalOpen = true;
   showLeaderboard();
 });
+document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
 const LW = 320, LH = 568;           // logical canvas size
 const GRAVITY       = 1400;
@@ -327,8 +373,15 @@ function die() {
   state = 'dead';
   deathTime = Date.now();
   setTimeout(() => {
-    if (score > 0) showNameModal(score);
-    else { modalOpen = true; showLeaderboard(); }
+    if (currentUser) {
+      saveScore(score);
+      showLeaderboard();
+    } else if (score > 0) {
+      showLoginModal();
+    } else {
+      modalOpen = true;
+      showLeaderboard();
+    }
   }, 600);
 }
 
