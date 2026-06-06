@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Noia Bird</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -14,16 +16,171 @@
       justify-content: center;
       align-items: center;
     }
-    canvas {
-      display: block;
-      touch-action: none;
+    canvas { display: block; touch-action: none; }
+
+    .modal {
+      display: none; position: fixed;
+      inset: 0; background: rgba(0,0,0,0.72);
+      z-index: 20; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .modal.show { display: flex; }
+    .mbox {
+      background: #1a1a2e; border: 2px solid #e62020;
+      border-radius: 18px; padding: 26px 22px;
+      width: min(290px, 88vw); text-align: center; color: #fff;
+    }
+    .mbox h2 { font-size: 22px; margin-bottom: 6px; color: #e62020; }
+    .mbox p  { font-size: 15px; margin-bottom: 14px; color: #ccc; }
+    .mbox input {
+      width: 100%; padding: 10px 12px; border-radius: 10px;
+      border: 1.5px solid #555; background: #111; color: #fff;
+      font-size: 16px; margin-bottom: 12px; outline: none;
+    }
+    .mbox input:focus { border-color: #e62020; }
+    .btn {
+      display: inline-block; padding: 10px 0; width: 100%;
+      border-radius: 10px; border: none; font-size: 16px;
+      font-weight: bold; cursor: pointer; margin-bottom: 8px;
+    }
+    .btn-red   { background: #e62020; color: #fff; }
+    .btn-gray  { background: #333; color: #aaa; }
+    .lb-list { text-align: left; margin: 10px 0 16px; }
+    .lb-row {
+      display: flex; justify-content: space-between;
+      padding: 5px 0; border-bottom: 1px solid #333;
+      font-size: 14px;
+    }
+    .lb-row .pos  { color: #e62020; font-weight: bold; width: 24px; }
+    .lb-row .nm   { flex: 1; color: #fff; }
+    .lb-row .pts  { color: #ffe033; font-weight: bold; }
+    #rankBtn {
+      position: fixed; z-index: 10;
+      background: rgba(0,0,0,0.55); color: #ffe033;
+      border: 1.5px solid #ffe033; border-radius: 20px;
+      padding: 7px 16px; font-size: 14px; font-weight: bold;
+      cursor: pointer; display: none;
+      bottom: 90px; left: 50%; transform: translateX(-50%);
+      white-space: nowrap;
     }
   </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<button id="rankBtn">🏆 Ver Ranking</button>
+
+<!-- Modal: name input -->
+<div id="nameModal" class="modal">
+  <div class="mbox">
+    <h2>Fim de jogo!</h2>
+    <p id="scoreMsg"></p>
+    <input id="nameInput" type="text" maxlength="15" placeholder="Seu nome ou apelido">
+    <button class="btn btn-red" id="saveBtn">Salvar pontuação</button>
+    <button class="btn btn-gray" id="skipBtn">Pular</button>
+  </div>
+</div>
+
+<!-- Modal: leaderboard -->
+<div id="lbModal" class="modal">
+  <div class="mbox">
+    <h2>🏆 Ranking</h2>
+    <div class="lb-list" id="lbList"></div>
+    <button class="btn btn-red" id="playAgainBtn">Jogar de novo</button>
+  </div>
+</div>
 <script>
-// ── Constants ───────────────────────────────────────────────────────────────
+// ── Firebase config ──────────────────────────────────────────────────────────
+// ATENÇÃO: preencher com os dados do seu projeto Firebase
+const FB_CONFIG = {
+  apiKey:            "FIREBASE_API_KEY",
+  authDomain:        "FIREBASE_PROJECT_ID.firebaseapp.com",
+  databaseURL:       "https://FIREBASE_PROJECT_ID-default-rtdb.firebaseio.com",
+  projectId:         "FIREBASE_PROJECT_ID",
+};
+let db = null;
+try {
+  firebase.initializeApp(FB_CONFIG);
+  db = firebase.database();
+} catch(e) { console.warn('Firebase não configurado:', e.message); }
+
+function saveScore(name, pts) {
+  if (!db) return Promise.resolve();
+  return db.ref('scores').push({ name: name.trim().slice(0, 15), score: pts, ts: Date.now() });
+}
+
+function loadLeaderboard() {
+  if (!db) return Promise.resolve([]);
+  return db.ref('scores').orderByChild('score').limitToLast(10).once('value').then(snap => {
+    const rows = [];
+    snap.forEach(c => rows.push(c.val()));
+    return rows.sort((a, b) => b.score - a.score);
+  });
+}
+
+// ── Modal helpers ─────────────────────────────────────────────────────────────
+let modalOpen = false;
+
+function showNameModal(pts) {
+  modalOpen = true;
+  document.getElementById('scoreMsg').textContent = 'Você fez ' + pts + ' ponto' + (pts !== 1 ? 's' : '') + '!';
+  document.getElementById('nameInput').value = '';
+  document.getElementById('nameModal').classList.add('show');
+  setTimeout(() => document.getElementById('nameInput').focus(), 100);
+}
+
+function hideNameModal() {
+  document.getElementById('nameModal').classList.remove('show');
+}
+
+function showLeaderboard() {
+  modalOpen = true;
+  const list = document.getElementById('lbList');
+  list.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px">Carregando…</div>';
+  document.getElementById('lbModal').classList.add('show');
+  loadLeaderboard().then(rows => {
+    if (rows.length === 0) {
+      list.innerHTML = '<div style="color:#aaa;text-align:center;padding:12px">Nenhuma pontuação ainda!</div>';
+      return;
+    }
+    list.innerHTML = rows.map((r, i) =>
+      `<div class="lb-row">
+        <span class="pos">${i + 1}º</span>
+        <span class="nm">${escHtml(r.name)}</span>
+        <span class="pts">${r.score}</span>
+      </div>`
+    ).join('');
+  }).catch(() => {
+    list.innerHTML = '<div style="color:#e62020;text-align:center;padding:12px">Erro ao carregar</div>';
+  });
+}
+
+function hideLeaderboard() {
+  document.getElementById('lbModal').classList.remove('show');
+  modalOpen = false;
+  resetGame();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Button wiring
+document.getElementById('saveBtn').addEventListener('click', () => {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { document.getElementById('nameInput').focus(); return; }
+  hideNameModal();
+  saveScore(name, score).finally(() => showLeaderboard());
+});
+document.getElementById('skipBtn').addEventListener('click', () => {
+  hideNameModal();
+  showLeaderboard();
+});
+document.getElementById('playAgainBtn').addEventListener('click', hideLeaderboard);
+document.getElementById('rankBtn').addEventListener('click', () => {
+  modalOpen = true;
+  showLeaderboard();
+});
+
 const LW = 320, LH = 568;           // logical canvas size
 const GRAVITY       = 1400;
 const FLAP_VEL      = -420;
@@ -75,13 +232,12 @@ let pipeTimer = 0;
 
 // ── Input ─────────────────────────────────────────────────────────────────────
 function flap() {
+  if (modalOpen) return;
   if (state === 'waiting') {
     state = 'playing';
     bird.vy = FLAP_VEL;
   } else if (state === 'playing') {
     bird.vy = FLAP_VEL;
-  } else if (state === 'dead' && Date.now() - deathTime > 500) {
-    resetGame();
   }
 }
 
@@ -123,8 +279,10 @@ function update(dt) {
   if (state === 'waiting') {
     idleT += dt;
     bird.y = LH / 2 + Math.sin(idleT * 2.5) * 8;
+    document.getElementById('rankBtn').style.display = 'block';
     return;
   }
+  document.getElementById('rankBtn').style.display = 'none';
   if (state === 'dead') return;
 
   // Physics
@@ -162,6 +320,10 @@ function update(dt) {
 function die() {
   state = 'dead';
   deathTime = Date.now();
+  setTimeout(() => {
+    if (score > 0) showNameModal(score);
+    else { modalOpen = true; showLeaderboard(); }
+  }, 600);
 }
 
 // ── Drawing ───────────────────────────────────────────────────────────────────
@@ -307,12 +469,6 @@ function draw() {
 
   if (state === 'waiting') {
     drawIntro();
-  } else if (state === 'dead') {
-    drawOverlay(
-      'Fim de jogo!',
-      'Pontos: ' + score + '  |  Recorde: ' + best,
-      'Toque para jogar de novo'
-    );
   }
 
   ctx.restore();
